@@ -1,5 +1,8 @@
 import sys
 from MemoriaCache import MemoriaCache
+import os
+
+cwd = os.getcwd()
 
 CPU_DEBUG = True
 
@@ -16,11 +19,12 @@ OPCODES = {
     "sub_reg_byte": 0x30,
     "sub_reg_reg": 0x31,
     "mov_reg_byte": 0x40,
-    "mov_reg_reg": 0x40,
+    "mov_reg_reg": 0x41,
     "jmp": 0x50,
     "cmp_reg_byte": 0x60,
     "cmp_reg_reg": 0x61,
     "jz": 0x70,
+    "jz_bug": 79,
 
 }
 
@@ -32,11 +36,12 @@ registrador_dx = 0x00
 
 flag_zero = False
 
+
 #memoria = MemoriaCache('arquivos_memoria/mov_mov_add.bin')
 #memoria = MemoriaCache('arquivos_memoria/inc_dec.bin')
-memoria = MemoriaCache('arquivos_memoria/todas_instrucoes.bin')
+#memoria = MemoriaCache('arquivos_memoria/todas_instrucoes.bin')
 #memoria = MemoriaCache('arquivos_memoria/programa_simples.bin')
-#memoria = MemoriaCache('arquivos_memoria/fibonacci_10.bin')
+memoria = MemoriaCache('arquivos_memoria/fibonacci_10.bin')
 
 def buscarEDecodificarInstrucao():
     global registrador_ax
@@ -47,8 +52,6 @@ def buscarEDecodificarInstrucao():
     global flag_zero
 
     instrucao = memoria.getValorMemoria(registrador_cp)
-
-    print(instrucao)
 
     if instrucao in OPCODES.values():
         return instrucao
@@ -76,7 +79,7 @@ def getRegistrador(reg_opcode):
         return registrador_dx
 
     else:
-        print("Erro no getRegistrador")
+        print("Erro ao pegar registrador")
         return 0
 
 def setRegistrador(reg_opcode, valor):
@@ -87,7 +90,10 @@ def setRegistrador(reg_opcode, valor):
     global registrador_dx
     global flag_zero
 
-    if reg_opcode == OPCODES["ax"]:
+    if reg_opcode == OPCODES["cp"]:
+        registrador_cp = valor
+
+    elif reg_opcode == OPCODES["ax"]:
         registrador_ax = valor
 
     elif reg_opcode == OPCODES["bx"]:
@@ -100,7 +106,7 @@ def setRegistrador(reg_opcode, valor):
         registrador_dx = valor
 
     else:
-        print("ERRO!!!!!!")
+        print("Erro ao setar registrador")
 
 
 def lerOperadoresExecutarInstrucao(idInstrucao):
@@ -178,14 +184,14 @@ def lerOperadoresExecutarInstrucao(idInstrucao):
         value_reg1 = getRegistrador(operador1)
         value_reg2 = getRegistrador(operador2)
 
-        result = value_reg - value_reg2
+        result = value_reg1 - value_reg2
 
         if result == 0:
             flag_zero = 1
         else:
             flag_zero = 0
 
-    elif idInstrucao == OPCODES["jz"]:
+    elif idInstrucao == OPCODES["jz"] or idInstrucao == OPCODES["jz_bug"]:
         operador1 = memoria.getValorMemoria(registrador_cp + 1)
 
         if flag_zero == 1:
@@ -194,6 +200,7 @@ def lerOperadoresExecutarInstrucao(idInstrucao):
 
 def calcularProximaInstrucao(idInstrucao):
     global registrador_cp
+    global flag_zero
 
     if idInstrucao == OPCODES["add_reg_byte"]:
         registrador_cp += 3
@@ -220,7 +227,7 @@ def calcularProximaInstrucao(idInstrucao):
         registrador_cp += 3
 
     elif idInstrucao == OPCODES["jmp"]:
-        registrador_cp += 2
+        registrador_cp += 0
     
     elif idInstrucao == OPCODES["cmp_reg_byte"]:
         registrador_cp += 3
@@ -229,7 +236,10 @@ def calcularProximaInstrucao(idInstrucao):
         registrador_cp += 3
 
     elif idInstrucao == OPCODES["jz"]:
-        registrador_cp += 2
+        if flag_zero == 1:
+            registrador_cp += 0
+        else:
+            registrador_cp += 2
 
 
 def dumpRegistradores():
